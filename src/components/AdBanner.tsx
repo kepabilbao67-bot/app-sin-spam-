@@ -5,31 +5,59 @@ import { COLORS } from '../constants';
 
 export default function AdBanner() {
   return (
-    <TouchableOpacity style={styles.container} onPress={() => Linking.openURL('https://www.revenuecat.com/docs/getting-started')} activeOpacity={0.8}>
-      <View style={styles.adLabel}>
-        <Text style={styles.adLabelText}>PUBLICIDAD</Text>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={() => Linking.openURL('https://www.revenuecat.com/docs/getting-started')}
+      activeOpacity={0.85}
+    >
+      <View style={styles.adTag}>
+        <Text style={styles.adTagText}>AD</Text>
       </View>
-      <View style={styles.content}>
+      <View style={styles.inner}>
         <View style={styles.iconWrap}>
-          <Ionicons name="megaphone" size={20} color={COLORS.textMuted} />
+          <Ionicons name="rocket" size={18} color={COLORS.primary} />
         </View>
-        <View style={styles.textWrap}>
-          <Text style={styles.headline}>¿Cansado de los anuncios?</Text>
-          <Text style={styles.sub}>Hazte Premium y elimínalos para siempre</Text>
+        <View style={styles.textBlock}>
+          <Text style={styles.headline}>Hazte Premium · Sin anuncios</Text>
+          <Text style={styles.sub}>Análisis con Claude AI ilimitado desde 2,99€/mes</Text>
         </View>
-        <Ionicons name="arrow-forward-circle" size={22} color={COLORS.primary} />
+        <View style={styles.arrow}>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+        </View>
       </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: COLORS.surface, borderRadius: 12, marginHorizontal: 16, marginVertical: 8, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },
-  adLabel: { backgroundColor: COLORS.border, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start' },
-  adLabelText: { color: COLORS.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
-  content: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
-  iconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.cardBg, justifyContent: 'center', alignItems: 'center' },
-  textWrap: { flex: 1 },
+  container: {
+    backgroundColor: COLORS.primary + '10',
+    borderRadius: 14,
+    marginHorizontal: 0,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+    overflow: 'hidden',
+  },
+  adTag: {
+    backgroundColor: COLORS.primary + '30',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+  },
+  adTagText: { color: COLORS.primaryLight, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  inner: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
+  iconWrap: {
+    width: 36, height: 36, borderRadius: 12,
+    backgroundColor: COLORS.primary + '20',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  textBlock: { flex: 1 },
   headline: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
   sub: { color: COLORS.textSecondary, fontSize: 11, marginTop: 1 },
+  arrow: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: COLORS.primary + '20',
+    justifyContent: 'center', alignItems: 'center',
+  },
 });

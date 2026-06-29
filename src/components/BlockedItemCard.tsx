@@ -10,69 +10,104 @@ interface Props {
   onPress?: (item: BlockedItem) => void;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  telemarketing: 'Telemarketing',
-  phishing: 'Phishing',
-  scam: 'Estafa',
-  robocall: 'Robot',
-  unknown: 'Desconocido',
+const CATEGORY_META: Record<string, { label: string; color: string; icon: string }> = {
+  telemarketing: { label: 'Telemarketing', color: COLORS.warning, icon: 'megaphone' },
+  phishing: { label: 'Phishing', color: COLORS.danger, icon: 'fish' },
+  scam: { label: 'Estafa', color: '#FF4081', icon: 'alert-circle' },
+  robocall: { label: 'Robocall', color: '#7C4DFF', icon: 'hardware-chip' },
+  unknown: { label: 'Desconocido', color: COLORS.textMuted, icon: 'help-circle' },
 };
 
-const TYPE_ICONS: Record<string, string> = {
-  call: 'call',
-  sms: 'chatbubble',
-  email: 'mail',
-  app: 'apps',
+const TYPE_META: Record<string, { icon: string; label: string }> = {
+  call: { icon: 'call', label: 'Llamada' },
+  sms: { icon: 'chatbubble', label: 'SMS' },
+  email: { icon: 'mail', label: 'Email' },
 };
 
 export default function BlockedItemCard({ item, onDelete, onPress }: Props) {
   const confidencePct = Math.round(item.confidence * 100);
-  const color = confidencePct > 85 ? COLORS.danger : confidencePct > 65 ? COLORS.warning : COLORS.primary;
-  const date = new Date(item.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const cat = CATEGORY_META[item.category] ?? CATEGORY_META.unknown;
+  const type = TYPE_META[item.type] ?? { icon: 'alert', label: 'Otro' };
+  const accentColor = cat.color;
+  const date = new Date(item.timestamp).toLocaleDateString('es-ES', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  });
 
-  const confirm = () => Alert.alert('Eliminar registro', '¿Eliminar este elemento bloqueado?', [
+  const confirm = () => Alert.alert('Eliminar registro', '¿Eliminar este elemento?', [
     { text: 'Cancelar', style: 'cancel' },
     { text: 'Eliminar', style: 'destructive', onPress: () => onDelete(item.id) },
   ]);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={() => onPress?.(item)} activeOpacity={0.8}>
-      <View style={[styles.typeIcon, { backgroundColor: color + '22' }]}>
-        <Ionicons name={TYPE_ICONS[item.type] as any} size={18} color={color} />
+    <TouchableOpacity style={[styles.card, { borderLeftColor: accentColor }]} onPress={() => onPress?.(item)} activeOpacity={0.75}>
+      {/* Left accent + icon */}
+      <View style={[styles.iconWrap, { backgroundColor: accentColor + '18' }]}>
+        <Ionicons name={type.icon as any} size={18} color={accentColor} />
       </View>
-      <View style={styles.info}>
-        <Text style={styles.sender} numberOfLines={1}>{item.sender}</Text>
-        {item.content && <Text style={styles.content} numberOfLines={1}>{item.content}</Text>}
-        <View style={styles.meta}>
-          <View style={[styles.badge, { backgroundColor: color + '33' }]}>
-            <Text style={[styles.badgeText, { color }]}>{CATEGORY_LABELS[item.category]}</Text>
+
+      {/* Main content */}
+      <View style={styles.content}>
+        <View style={styles.topRow}>
+          <Text style={styles.sender} numberOfLines={1}>{item.sender}</Text>
+          <View style={[styles.catBadge, { backgroundColor: accentColor + '22' }]}>
+            <Ionicons name={cat.icon as any} size={10} color={accentColor} />
+            <Text style={[styles.catText, { color: accentColor }]}>{cat.label}</Text>
           </View>
-          <Text style={styles.date}>{date}</Text>
         </View>
-        <Text style={styles.reason}>{item.reason}</Text>
+
+        {item.content && (
+          <Text style={styles.preview} numberOfLines={1}>{item.content}</Text>
+        )}
+
+        {/* Confidence bar */}
+        <View style={styles.barRow}>
+          <View style={styles.barTrack}>
+            <View style={[styles.barFill, { width: `${confidencePct}%` as any, backgroundColor: accentColor }]} />
+          </View>
+          <Text style={[styles.confText, { color: accentColor }]}>{confidencePct}%</Text>
+        </View>
+
+        <Text style={styles.date}>{date} · {type.label}</Text>
       </View>
-      <View style={styles.right}>
-        <Text style={[styles.confidence, { color }]}>{confidencePct}%</Text>
-        <TouchableOpacity onPress={confirm} style={styles.deleteBtn}>
-          <Ionicons name="trash-outline" size={16} color={COLORS.textMuted} />
-        </TouchableOpacity>
-      </View>
+
+      <TouchableOpacity onPress={confirm} style={styles.deleteBtn}>
+        <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
-  typeIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  info: { flex: 1 },
-  sender: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 2 },
-  content: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 4 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
-  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  badgeText: { fontSize: 10, fontWeight: '600' },
+  card: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderLeftWidth: 3,
+    gap: 12,
+  },
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  content: { flex: 1, gap: 4 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sender: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.text },
+  catBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
+  catText: { fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.4 },
+  preview: { fontSize: 11, color: COLORS.textSecondary, lineHeight: 15 },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  barTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: COLORS.surface, overflow: 'hidden' },
+  barFill: { height: 4, borderRadius: 2 },
+  confText: { fontSize: 11, fontWeight: '800', width: 32, textAlign: 'right' },
   date: { fontSize: 10, color: COLORS.textMuted },
-  reason: { fontSize: 10, color: COLORS.textMuted, fontStyle: 'italic' },
-  right: { alignItems: 'center', gap: 8, marginLeft: 8 },
-  confidence: { fontSize: 16, fontWeight: '800' },
-  deleteBtn: { padding: 4 },
+  deleteBtn: { padding: 2, flexShrink: 0 },
 });
