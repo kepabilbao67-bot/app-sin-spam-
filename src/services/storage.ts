@@ -47,10 +47,6 @@ export async function getBlockedItems(): Promise<BlockedItem[]> {
   }
 }
 
-// Simple mutex to prevent concurrent stat updates
-let statsLock = false;
-const statsQueue: (() => void)[] = [];
-
 export async function addBlockedItem(item: BlockedItem): Promise<void> {
   const items = await getBlockedItems();
   items.unshift(item);

@@ -21,7 +21,7 @@ export async function sendBlockedNotification(item: BlockedItem): Promise<void> 
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') return;
 
-  const typeLabel = { call: 'Llamada', sms: 'SMS', email: 'Email' }[item.type];
+  const typeLabel = ({ call: 'Llamada', sms: 'SMS', email: 'Email' } as Record<string, string>)[item.type] ?? 'Mensaje';
   const categoryLabel = {
     telemarketing: 'Telemarketing',
     phishing: 'Phishing',

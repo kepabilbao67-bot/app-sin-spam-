@@ -14,9 +14,11 @@ function isRateLimited(): boolean {
   const now = Date.now();
   const recent = callTimestamps.filter(t => now - t < RATE_WINDOW);
   callTimestamps.splice(0, callTimestamps.length, ...recent);
-  if (recent.length >= RATE_LIMIT) return true;
-  callTimestamps.push(now);
-  return false;
+  return recent.length >= RATE_LIMIT;
+}
+
+function recordCall(): void {
+  callTimestamps.push(Date.now());
 }
 
 export function initAI(apiKey: string) {
@@ -148,12 +150,12 @@ Responde SOLO con JSON válido:
       max_tokens: 200,
       messages: [{ role: 'user', content: prompt }],
     });
+    recordCall();
 
     const text = (message.content[0] as { text: string }).text;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      // Validate response shape
       if (
         typeof parsed.isSpam === 'boolean' &&
         typeof parsed.confidence === 'number' &&

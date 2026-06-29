@@ -119,8 +119,9 @@ export async function processEmail(
   if (!settings.emailFilteringEnabled) return null;
 
   const content = `Asunto: ${subject}${body ? `. Cuerpo: ${body.substring(0, 300)}` : ''}`;
+  const normalizedFrom = normalizePhone(from);
 
-  const ruleCheck = await checkRules(from, 'email', content);
+  const ruleCheck = await checkRules(normalizedFrom, 'email', content);
   if (ruleCheck.action === 'allow') return null;
 
   let analysis;
@@ -128,8 +129,8 @@ export async function processEmail(
     analysis = { isSpam: true, confidence: 1.0, category: 'phishing' as const, reason: 'En lista negra' };
   } else {
     analysis = settings.aiAnalysisEnabled
-      ? await analyzeWithAI(from, content, 'email')
-      : analyzeLocally(from, content, 'email');
+      ? await analyzeWithAI(normalizedFrom, content, 'email')
+      : analyzeLocally(normalizedFrom, content, 'email');
   }
 
   if (!analysis.isSpam || analysis.confidence < settings.confidenceThreshold) return null;
