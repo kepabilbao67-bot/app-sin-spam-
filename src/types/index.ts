@@ -28,6 +28,7 @@ export interface Stats {
   today: number;
   thisWeek: number;
   thisMonth: number;
+  lastResetDate?: number;
 }
 
 export interface AIAnalysis {

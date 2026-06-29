@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
 import BlockedItemCard from '../components/BlockedItemCard';
 import { useSpamData } from '../hooks/useSpamData';
-import { BlockedItem } from '../types';
 import { clearAllData } from '../services/storage';
 import { processSMS, processEmail, processCall } from '../services/spamDetector';
+import { BlockedItem } from '../types';
+import DetailScreen from './DetailScreen';
 
 type Filter = 'all' | 'call' | 'sms' | 'email';
 
@@ -18,6 +19,7 @@ export default function BlockedScreen() {
   const [showAnalyzer, setShowAnalyzer] = useState(false);
   const [analyzerInput, setAnalyzerInput] = useState('');
   const [analyzerType, setAnalyzerType] = useState<'sms' | 'call' | 'email'>('sms');
+  const [selectedItem, setSelectedItem] = useState<BlockedItem | null>(null);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
@@ -86,7 +88,7 @@ export default function BlockedScreen() {
       <FlatList
         data={filtered}
         keyExtractor={i => i.id}
-        renderItem={({ item }) => <BlockedItemCard item={item} onDelete={deleteItem} />}
+        renderItem={({ item }) => <BlockedItemCard item={item} onDelete={deleteItem} onPress={setSelectedItem} />}
         refreshing={loading}
         onRefresh={refresh}
         ListEmptyComponent={
@@ -97,6 +99,13 @@ export default function BlockedScreen() {
           </View>
         }
       />
+      {selectedItem && (
+        <DetailScreen
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onDelete={(id) => { deleteItem(id); setSelectedItem(null); }}
+        />
+      )}
     </View>
   );
 }

@@ -1,6 +1,7 @@
 import { BlockedItem, Rule } from '../types';
 import { analyzeLocally, analyzeWithAI } from './aiAnalyzer';
 import { getRules, getSettings, addBlockedItem } from './storage';
+import { sendBlockedNotification } from './notifications';
 
 function generateId(): string {
   return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
@@ -8,17 +9,23 @@ function generateId(): string {
 
 async function checkRules(
   sender: string,
-  channel: 'call' | 'sms' | 'email'
+  channel: 'call' | 'sms' | 'email',
+  content?: string
 ): Promise<{ action: 'allow' | 'block' | 'analyze'; rule?: Rule }> {
   const rules = await getRules();
 
   for (const rule of rules) {
     if (rule.channel !== 'all' && rule.channel !== channel) continue;
 
-    const matches =
-      rule.type === 'pattern'
-        ? new RegExp(rule.value, 'i').test(sender)
-        : sender.toLowerCase().includes(rule.value.toLowerCase());
+    const testStr = content ? `${sender} ${content}` : sender;
+    let matches: boolean;
+    try {
+      matches = rule.type === 'pattern'
+        ? new RegExp(rule.value, 'i').test(testStr)
+        : testStr.toLowerCase().includes(rule.value.toLowerCase());
+    } catch {
+      continue; // skip malformed patterns
+    }
 
     if (matches) {
       if (rule.type === 'whitelist') return { action: 'allow', rule };
@@ -59,6 +66,7 @@ export async function processCall(phoneNumber: string): Promise<BlockedItem | nu
   };
 
   await addBlockedItem(item);
+  if (settings.notificationsEnabled) sendBlockedNotification(item).catch(() => {});
   return item;
 }
 
@@ -69,7 +77,7 @@ export async function processSMS(
   const settings = await getSettings();
   if (!settings.smsFilteringEnabled) return null;
 
-  const ruleCheck = await checkRules(phoneNumber, 'sms');
+  const ruleCheck = await checkRules(phoneNumber, 'sms', message);
   if (ruleCheck.action === 'allow') return null;
 
   let analysis;
@@ -96,6 +104,7 @@ export async function processSMS(
   };
 
   await addBlockedItem(item);
+  if (settings.notificationsEnabled) sendBlockedNotification(item).catch(() => {});
   return item;
 }
 
@@ -107,10 +116,10 @@ export async function processEmail(
   const settings = await getSettings();
   if (!settings.emailFilteringEnabled) return null;
 
-  const ruleCheck = await checkRules(from, 'email');
-  if (ruleCheck.action === 'allow') return null;
-
   const content = `Asunto: ${subject}${body ? `. Cuerpo: ${body.substring(0, 300)}` : ''}`;
+
+  const ruleCheck = await checkRules(from, 'email', content);
+  if (ruleCheck.action === 'allow') return null;
 
   let analysis;
   if (ruleCheck.action === 'block') {
@@ -136,5 +145,6 @@ export async function processEmail(
   };
 
   await addBlockedItem(item);
+  if (settings.notificationsEnabled) sendBlockedNotification(item).catch(() => {});
   return item;
 }

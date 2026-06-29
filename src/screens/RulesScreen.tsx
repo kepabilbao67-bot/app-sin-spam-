@@ -16,11 +16,18 @@ export default function RulesScreen() {
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
   const save = async () => {
-    if (!value.trim()) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    if (type === 'pattern') {
+      try { new RegExp(trimmed); } catch {
+        Alert.alert('Expresión inválida', 'La expresión regular no es válida. Corrígela e inténtalo de nuevo.');
+        return;
+      }
+    }
     const rule: Rule = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      value: value.trim(),
+      value: trimmed,
       channel,
       createdAt: Date.now(),
     };

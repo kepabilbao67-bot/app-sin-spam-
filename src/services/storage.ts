@@ -72,11 +72,24 @@ export async function getStats(): Promise<Stats> {
 }
 
 async function updateStats(type: BlockedItem['type']): Promise<void> {
+  const now = Date.now();
   const stats = await getStats();
+
+  // Reset today counter at midnight
+  const lastReset = stats.lastResetDate || 0;
+  const dayStart = new Date().setHours(0, 0, 0, 0);
+  const weekStart = dayStart - (new Date().getDay() * 86400000);
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+
+  if (lastReset < dayStart) stats.today = 0;
+  if (lastReset < weekStart) stats.thisWeek = 0;
+  if (lastReset < monthStart) stats.thisMonth = 0;
+
   stats.totalBlocked += 1;
   stats.today += 1;
   stats.thisWeek += 1;
   stats.thisMonth += 1;
+  stats.lastResetDate = now;
   if (type === 'call') stats.callsBlocked += 1;
   if (type === 'sms') stats.smsBlocked += 1;
   if (type === 'email') stats.emailsBlocked += 1;

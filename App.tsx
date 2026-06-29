@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { getSettings } from './src/services/storage';
 import { initAI } from './src/services/aiAnalyzer';
+import { requestNotificationPermissions } from './src/services/notifications';
 import { COLORS } from './src/constants';
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
     (async () => {
       const settings = await getSettings();
       if (settings.apiKey) initAI(settings.apiKey);
+      if (settings.notificationsEnabled) await requestNotificationPermissions();
     })();
   }, []);
 

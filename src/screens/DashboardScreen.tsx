@@ -1,5 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
@@ -7,19 +7,34 @@ import StatCard from '../components/StatCard';
 import { useSpamData } from '../hooks/useSpamData';
 import { processSMS, processCall, processEmail } from '../services/spamDetector';
 
+const DEMO_CASES = [
+  { fn: () => processSMS('+34900123456', '¡ENHORABUENA! Has ganado un iPhone 15. Llama ahora al 900.'), label: 'SMS telemarketing' },
+  { fn: () => processCall('+34803456789'), label: 'Llamada robocall' },
+  { fn: () => processEmail('noreply@banco-urgente.tk', 'Su cuenta ha sido suspendida. Verifique ahora.'), label: 'Email phishing' },
+  { fn: () => processSMS('800123', 'Oferta EXCLUSIVA: crédito fácil 10.000€ sin avales. Pincha aquí: http://bit.ly/xxx'), label: 'SMS estafa' },
+  { fn: () => processEmail('sorteos@premios-gratis.net', 'Has sido seleccionado para ganar 5.000€'), label: 'Email scam' },
+];
+
 export default function DashboardScreen() {
   const { stats, items, loading, refresh } = useSpamData();
+  const [demoRunning, setDemoRunning] = useState(false);
+  const [demoStep, setDemoStep] = useState('');
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
-  const recent = items.slice(0, 3);
+  const recent = items.slice(0, 5);
 
   const runDemo = async () => {
-    Alert.alert('Simulación IA', 'Analizando mensajes de prueba con IA local...');
-    await processSMS('+34900123456', '¡ENHORABUENA! Has ganado un iPhone 15. Llama ahora al 900 para reclamarlo.');
-    await processCall('+34803456789');
-    await processEmail('noreply@banco-urgente.tk', 'Su cuenta ha sido suspendida. Verifique ahora.');
+    setDemoRunning(true);
+    for (const demo of DEMO_CASES) {
+      setDemoStep(`Analizando: ${demo.label}...`);
+      await demo.fn();
+      await new Promise(r => setTimeout(r, 400));
+    }
     await refresh();
+    setDemoRunning(false);
+    setDemoStep('');
+    Alert.alert('Simulación completada', `Se analizaron ${DEMO_CASES.length} amenazas. Comprueba la pestaña "Bloqueados".`);
   };
 
   return (
@@ -68,9 +83,11 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      <TouchableOpacity style={styles.demoBtn} onPress={runDemo}>
-        <Ionicons name="flask" size={18} color={COLORS.primary} />
-        <Text style={styles.demoBtnText}>Simular detección IA</Text>
+      <TouchableOpacity style={[styles.demoBtn, demoRunning && styles.demoBtnRunning]} onPress={runDemo} disabled={demoRunning}>
+        {demoRunning
+          ? <><ActivityIndicator size="small" color={COLORS.primary} /><Text style={styles.demoBtnText}>{demoStep}</Text></>
+          : <><Ionicons name="flask" size={18} color={COLORS.primary} /><Text style={styles.demoBtnText}>Simular {DEMO_CASES.length} amenazas con IA</Text></>
+        }
       </TouchableOpacity>
 
       <View style={styles.aiInfo}>
@@ -100,7 +117,8 @@ const styles = StyleSheet.create({
   recentSender: { flex: 1, color: COLORS.text, fontSize: 13 },
   recentConf: { color: COLORS.danger, fontWeight: '700', fontSize: 13 },
   demoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary + '22', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: COLORS.primary + '44' },
-  demoBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 14 },
+  demoBtnRunning: { opacity: 0.7 },
+  demoBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 13, flex: 1, textAlign: 'center' },
   aiInfo: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.surface, borderRadius: 10, padding: 12, marginBottom: 24 },
   aiInfoText: { fontSize: 11, color: COLORS.textSecondary, flex: 1 },
 });

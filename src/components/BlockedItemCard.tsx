@@ -7,6 +7,7 @@ import { COLORS } from '../constants';
 interface Props {
   item: BlockedItem;
   onDelete: (id: string) => void;
+  onPress?: (item: BlockedItem) => void;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -24,7 +25,7 @@ const TYPE_ICONS: Record<string, string> = {
   app: 'apps',
 };
 
-export default function BlockedItemCard({ item, onDelete }: Props) {
+export default function BlockedItemCard({ item, onDelete, onPress }: Props) {
   const confidencePct = Math.round(item.confidence * 100);
   const color = confidencePct > 85 ? COLORS.danger : confidencePct > 65 ? COLORS.warning : COLORS.primary;
   const date = new Date(item.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -35,7 +36,7 @@ export default function BlockedItemCard({ item, onDelete }: Props) {
   ]);
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={() => onPress?.(item)} activeOpacity={0.8}>
       <View style={[styles.typeIcon, { backgroundColor: color + '22' }]}>
         <Ionicons name={TYPE_ICONS[item.type] as any} size={18} color={color} />
       </View>
@@ -56,7 +57,7 @@ export default function BlockedItemCard({ item, onDelete }: Props) {
           <Ionicons name="trash-outline" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
