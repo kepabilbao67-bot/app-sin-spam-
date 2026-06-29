@@ -2,7 +2,7 @@ export type SpamCategory = 'telemarketing' | 'phishing' | 'scam' | 'robocall' | 
 
 export interface BlockedItem {
   id: string;
-  type: 'call' | 'sms' | 'email' | 'app';
+  type: BlockedItemType;
   sender: string;
   content?: string;
   timestamp: number;
@@ -18,7 +18,10 @@ export interface Rule {
   value: string;
   channel: 'call' | 'sms' | 'email' | 'all';
   createdAt: number;
+  auto?: boolean;
 }
+
+export type BlockedItemType = 'call' | 'sms' | 'email';
 
 export interface Stats {
   totalBlocked: number;

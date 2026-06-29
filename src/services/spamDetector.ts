@@ -1,5 +1,5 @@
 import { BlockedItem, Rule } from '../types';
-import { analyzeLocally, analyzeWithAI } from './aiAnalyzer';
+import { analyzeLocally, analyzeWithAI, normalizePhone } from './aiAnalyzer';
 import { getRules, getSettings, addBlockedItem } from './storage';
 import { sendBlockedNotification } from './notifications';
 
@@ -40,7 +40,8 @@ export async function processCall(phoneNumber: string): Promise<BlockedItem | nu
   const settings = await getSettings();
   if (!settings.callBlockingEnabled) return null;
 
-  const ruleCheck = await checkRules(phoneNumber, 'call');
+  const normalized = normalizePhone(phoneNumber);
+  const ruleCheck = await checkRules(normalized, 'call');
   if (ruleCheck.action === 'allow') return null;
 
   let analysis;
@@ -48,8 +49,8 @@ export async function processCall(phoneNumber: string): Promise<BlockedItem | nu
     analysis = { isSpam: true, confidence: 1.0, category: 'telemarketing' as const, reason: 'En lista negra' };
   } else {
     analysis = settings.aiAnalysisEnabled
-      ? await analyzeWithAI(phoneNumber, '', 'call')
-      : analyzeLocally(phoneNumber, undefined, 'call');
+      ? await analyzeWithAI(normalized, '', 'call')
+      : analyzeLocally(normalized, undefined, 'call');
   }
 
   if (!analysis.isSpam || analysis.confidence < settings.confidenceThreshold) return null;
@@ -77,7 +78,8 @@ export async function processSMS(
   const settings = await getSettings();
   if (!settings.smsFilteringEnabled) return null;
 
-  const ruleCheck = await checkRules(phoneNumber, 'sms', message);
+  const normalized = normalizePhone(phoneNumber);
+  const ruleCheck = await checkRules(normalized, 'sms', message);
   if (ruleCheck.action === 'allow') return null;
 
   let analysis;
@@ -85,8 +87,8 @@ export async function processSMS(
     analysis = { isSpam: true, confidence: 1.0, category: 'scam' as const, reason: 'En lista negra' };
   } else {
     analysis = settings.aiAnalysisEnabled
-      ? await analyzeWithAI(phoneNumber, message, 'sms')
-      : analyzeLocally(phoneNumber, message, 'sms');
+      ? await analyzeWithAI(normalized, message, 'sms')
+      : analyzeLocally(normalized, message, 'sms');
   }
 
   if (!analysis.isSpam || analysis.confidence < settings.confidenceThreshold) return null;

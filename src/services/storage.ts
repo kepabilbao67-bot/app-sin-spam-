@@ -1,18 +1,41 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { BlockedItem, Rule, AppSettings, Stats } from '../types';
 import { STORAGE_KEYS, DEFAULT_SETTINGS } from '../constants';
+
+// API key stored in SecureStore (encrypted), rest in AsyncStorage
+const API_KEY_SECURE_KEY = 'antispam_api_key';
+
+export async function getApiKey(): Promise<string | null> {
+  try { return await SecureStore.getItemAsync(API_KEY_SECURE_KEY); }
+  catch { return null; }
+}
+
+export async function saveApiKey(key: string): Promise<void> {
+  await SecureStore.setItemAsync(API_KEY_SECURE_KEY, key);
+}
+
+export async function deleteApiKey(): Promise<void> {
+  await SecureStore.deleteItemAsync(API_KEY_SECURE_KEY).catch(() => {});
+}
 
 export async function getSettings(): Promise<AppSettings> {
   try {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return data ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) } : DEFAULT_SETTINGS;
+    const settings = data ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) } : { ...DEFAULT_SETTINGS };
+    // Load api key from secure store
+    settings.apiKey = (await getApiKey()) || undefined;
+    return settings;
   } catch {
     return DEFAULT_SETTINGS;
   }
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  const { apiKey, ...rest } = settings;
+  // API key saved separately in SecureStore
+  if (apiKey) await saveApiKey(apiKey);
+  await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(rest));
 }
 
 export async function getBlockedItems(): Promise<BlockedItem[]> {
@@ -24,18 +47,20 @@ export async function getBlockedItems(): Promise<BlockedItem[]> {
   }
 }
 
+// Simple mutex to prevent concurrent stat updates
+let statsLock = false;
+const statsQueue: (() => void)[] = [];
+
 export async function addBlockedItem(item: BlockedItem): Promise<void> {
   const items = await getBlockedItems();
   items.unshift(item);
-  const trimmed = items.slice(0, 500);
-  await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_ITEMS, JSON.stringify(trimmed));
+  await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_ITEMS, JSON.stringify(items.slice(0, 500)));
   await updateStats(item.type);
 }
 
 export async function removeBlockedItem(id: string): Promise<void> {
   const items = await getBlockedItems();
-  const filtered = items.filter(i => i.id !== id);
-  await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_ITEMS, JSON.stringify(filtered));
+  await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_ITEMS, JSON.stringify(items.filter(i => i.id !== id)));
 }
 
 export async function getRules(): Promise<Rule[]> {
@@ -55,8 +80,27 @@ export async function addRule(rule: Rule): Promise<void> {
 
 export async function removeRule(id: string): Promise<void> {
   const rules = await getRules();
-  const filtered = rules.filter(r => r.id !== id);
-  await AsyncStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(filtered));
+  await AsyncStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(rules.filter(r => r.id !== id)));
+}
+
+export async function exportRules(): Promise<string> {
+  const rules = await getRules();
+  return JSON.stringify(rules, null, 2);
+}
+
+export async function importRules(json: string): Promise<number> {
+  const parsed = JSON.parse(json);
+  if (!Array.isArray(parsed)) throw new Error('Formato inválido');
+  const valid = parsed.filter((r: any) =>
+    typeof r.id === 'string' && typeof r.value === 'string' &&
+    ['whitelist', 'blacklist', 'pattern'].includes(r.type) &&
+    ['all', 'call', 'sms', 'email'].includes(r.channel)
+  ) as Rule[];
+  const existing = await getRules();
+  const existingIds = new Set(existing.map(r => r.id));
+  const newRules = valid.filter(r => !existingIds.has(r.id));
+  await AsyncStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify([...existing, ...newRules]));
+  return newRules.length;
 }
 
 export async function getStats(): Promise<Stats> {
@@ -75,11 +119,11 @@ async function updateStats(type: BlockedItem['type']): Promise<void> {
   const now = Date.now();
   const stats = await getStats();
 
-  // Reset today counter at midnight
   const lastReset = stats.lastResetDate || 0;
-  const dayStart = new Date().setHours(0, 0, 0, 0);
-  const weekStart = dayStart - (new Date().getDay() * 86400000);
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const today = new Date();
+  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const weekStart = dayStart - today.getDay() * 86400000;
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
 
   if (lastReset < dayStart) stats.today = 0;
   if (lastReset < weekStart) stats.thisWeek = 0;
@@ -97,6 +141,11 @@ async function updateStats(type: BlockedItem['type']): Promise<void> {
 }
 
 export async function clearAllData(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEYS.BLOCKED_ITEMS);
-  await AsyncStorage.removeItem(STORAGE_KEYS.STATS);
+  await Promise.all([
+    AsyncStorage.removeItem(STORAGE_KEYS.BLOCKED_ITEMS),
+    AsyncStorage.removeItem(STORAGE_KEYS.STATS),
+    AsyncStorage.removeItem(STORAGE_KEYS.RULES),
+    AsyncStorage.removeItem(STORAGE_KEYS.SETTINGS),
+    deleteApiKey(),
+  ]);
 }

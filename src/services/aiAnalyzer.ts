@@ -1,11 +1,29 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { Platform } from 'react-native';
 import { AIAnalysis, SpamCategory } from '../types';
 import { SPAM_PATTERNS, KNOWN_SPAM_PREFIXES } from '../constants';
 
 let client: Anthropic | null = null;
 
+// Rate limiting: max 10 AI calls per minute
+const callTimestamps: number[] = [];
+const RATE_LIMIT = 10;
+const RATE_WINDOW = 60000;
+
+function isRateLimited(): boolean {
+  const now = Date.now();
+  const recent = callTimestamps.filter(t => now - t < RATE_WINDOW);
+  callTimestamps.splice(0, callTimestamps.length, ...recent);
+  if (recent.length >= RATE_LIMIT) return true;
+  callTimestamps.push(now);
+  return false;
+}
+
 export function initAI(apiKey: string) {
-  client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  // dangerouslyAllowBrowser only needed on web — React Native is not a browser
+  const opts: ConstructorParameters<typeof Anthropic>[0] = { apiKey };
+  if (Platform.OS === 'web') (opts as any).dangerouslyAllowBrowser = true;
+  client = new Anthropic(opts);
 }
 
 export function isAIReady(): boolean {
@@ -26,6 +44,14 @@ export async function testAIConnection(): Promise<{ ok: boolean; model?: string;
   }
 }
 
+// Normalize phone number to consistent format for rule matching
+export function normalizePhone(raw: string): string {
+  const stripped = raw.replace(/[\s\-().]/g, '');
+  // Add + prefix if missing from international numbers starting with 00
+  if (stripped.startsWith('00')) return '+' + stripped.slice(2);
+  return stripped;
+}
+
 // Local heuristic analysis (works without API key)
 export function analyzeLocally(
   sender: string,
@@ -36,8 +62,10 @@ export function analyzeLocally(
   let category: SpamCategory = 'unknown';
   const reasons: string[] = [];
 
+  const normalized = normalizePhone(sender);
+
   // Check against known spam prefixes
-  const isKnownSpam = KNOWN_SPAM_PREFIXES.some(prefix => sender.startsWith(prefix));
+  const isKnownSpam = KNOWN_SPAM_PREFIXES.some(prefix => normalized.startsWith(prefix));
   if (isKnownSpam) {
     score += 0.6;
     category = 'telemarketing';
@@ -52,14 +80,10 @@ export function analyzeLocally(
       category = 'scam';
       reasons.push(`${matchedPatterns.length} patrón(es) de spam detectado(s)`);
     }
-
-    // URLs suspicious
     if (/https?:\/\/[^\s]+/.test(content) && type === 'sms') {
       score += 0.2;
       reasons.push('Contiene URL sospechosa');
     }
-
-    // CAPS heavy
     const capsRatio = (content.match(/[A-ZÁÉÍÓÚ]/g) || []).length / content.length;
     if (capsRatio > 0.4 && content.length > 20) {
       score += 0.15;
@@ -67,11 +91,22 @@ export function analyzeLocally(
     }
   }
 
-  // Unknown short number
-  if (/^\d{4,6}$/.test(sender.replace(/\s/g, ''))) {
-    score += 0.25;
+  // Short marketing codes — only mark suspicious if no legitimate pattern
+  // Legitimate 2FA codes are 4-6 digits but are one-time and rare
+  if (/^\d{4,6}$/.test(sender.replace(/\s/g, '')) && content && SPAM_PATTERNS.some(p => p.test(content))) {
+    score += 0.3;
     category = 'telemarketing';
-    reasons.push('Número corto típico de marketing');
+    reasons.push('Número corto con contenido sospechoso');
+  }
+
+  // Suspicious email domains
+  if (type === 'email') {
+    const suspiciousTLD = /\.(tk|ml|ga|cf|gq|xyz|top|club|win|loan)$/i.test(sender);
+    if (suspiciousTLD) {
+      score += 0.35;
+      category = 'phishing';
+      reasons.push('Dominio de email sospechoso');
+    }
   }
 
   const confidence = Math.min(0.99, score);
@@ -89,7 +124,7 @@ export async function analyzeWithAI(
   content: string,
   type: 'call' | 'sms' | 'email'
 ): Promise<AIAnalysis> {
-  if (!client) {
+  if (!client || isRateLimited()) {
     return analyzeLocally(sender, content, type);
   }
 
@@ -117,24 +152,19 @@ Responde SOLO con JSON válido:
     const text = (message.content[0] as { text: string }).text;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      // Validate response shape
+      if (
+        typeof parsed.isSpam === 'boolean' &&
+        typeof parsed.confidence === 'number' &&
+        typeof parsed.reason === 'string'
+      ) {
+        return parsed as AIAnalysis;
+      }
     }
   } catch {
-    // Fallback to local analysis
+    // fallback silently
   }
 
   return analyzeLocally(sender, content, type);
-}
-
-// Batch analyze for demo/testing
-export function generateDemoData() {
-  const demos = [
-    { sender: '+34900123456', content: '¡ENHORABUENA! Has ganado un iPhone. Llama ahora.', type: 'sms' as const },
-    { sender: '+34666123456', content: 'Hola Pedro, ¿quedamos mañana?', type: 'sms' as const },
-    { sender: '800123', content: 'Oferta limitada: préstamo de 10.000€ sin avales.', type: 'sms' as const },
-    { sender: 'noreply@banco-seguro.tk', content: 'Su cuenta ha sido suspendida. Verifique ahora.', type: 'email' as const },
-    { sender: '+34912345678', content: undefined, type: 'call' as const },
-  ];
-
-  return demos.map(d => analyzeLocally(d.sender, d.content, d.type));
 }
