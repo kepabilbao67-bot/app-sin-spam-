@@ -1,22 +1,39 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { BlockedItem, Rule, AppSettings, Stats } from '../types';
 import { STORAGE_KEYS, DEFAULT_SETTINGS } from '../constants';
 
-// API key stored in SecureStore (encrypted), rest in AsyncStorage
-const API_KEY_SECURE_KEY = 'antispam_api_key';
+const API_KEY_WEB_KEY = 'antispam_api_key_web';
 
 export async function getApiKey(): Promise<string | null> {
-  try { return await SecureStore.getItemAsync(API_KEY_SECURE_KEY); }
-  catch { return null; }
+  try {
+    if (Platform.OS !== 'web') {
+      const SecureStore = require('expo-secure-store');
+      return await SecureStore.getItemAsync('antispam_api_key');
+    }
+    return await AsyncStorage.getItem(API_KEY_WEB_KEY);
+  } catch { return null; }
 }
 
 export async function saveApiKey(key: string): Promise<void> {
-  await SecureStore.setItemAsync(API_KEY_SECURE_KEY, key);
+  try {
+    if (Platform.OS !== 'web') {
+      const SecureStore = require('expo-secure-store');
+      await SecureStore.setItemAsync('antispam_api_key', key);
+    } else {
+      await AsyncStorage.setItem(API_KEY_WEB_KEY, key);
+    }
+  } catch { await AsyncStorage.setItem(API_KEY_WEB_KEY, key); }
 }
 
 export async function deleteApiKey(): Promise<void> {
-  await SecureStore.deleteItemAsync(API_KEY_SECURE_KEY).catch(() => {});
+  try {
+    if (Platform.OS !== 'web') {
+      const SecureStore = require('expo-secure-store');
+      await SecureStore.deleteItemAsync('antispam_api_key').catch(() => {});
+    }
+    await AsyncStorage.removeItem(API_KEY_WEB_KEY).catch(() => {});
+  } catch { }
 }
 
 export async function getSettings(): Promise<AppSettings> {

@@ -39,16 +39,7 @@
     },
     "plugins": [
       "expo-notifications",
-      "expo-contacts",
-      [
-        "expo-background-fetch",
-        {
-          "statusBarColor": "#0F0F1A"
-        }
-      ],
-      [
-        "./plugins/withShareIntent.js"
-      ]
+      "expo-contacts"
     ]
   }
 }
