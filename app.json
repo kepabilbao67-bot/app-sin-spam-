@@ -38,8 +38,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-notifications",
-      "expo-contacts"
+      "expo-notifications"
     ]
   }
 }
