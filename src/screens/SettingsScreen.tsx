@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Switch, TextInput, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, DEFAULT_SETTINGS } from '../constants';
 import { useSpamData } from '../hooks/useSpamData';
@@ -9,6 +9,7 @@ import { initAI, testAIConnection } from '../services/aiAnalyzer';
 
 export default function SettingsScreen() {
   const { settings, refresh, updateSettings } = useSpamData();
+  const navigation = useNavigation<any>();
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -68,6 +69,18 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Configuración</Text>
+
+      {/* Premium banner */}
+      <TouchableOpacity style={styles.premiumBanner} onPress={() => navigation.navigate('Premium')}>
+        <View style={styles.premiumLeft}>
+          <Text style={styles.premiumEmoji}>👑</Text>
+          <View>
+            <Text style={styles.premiumTitle}>Anti-Spam IA Premium</Text>
+            <Text style={styles.premiumSub}>Claude AI sin límite · Sin anuncios · Soporte 24h</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#FFD700" />
+      </TouchableOpacity>
 
       <Text style={styles.section}>Protección</Text>
       <View style={styles.card}>
@@ -198,6 +211,11 @@ const styles = StyleSheet.create({
   getKeyLink: { color: COLORS.primary, fontSize: 12, textAlign: 'center', padding: 8, marginBottom: 6, textDecorationLine: 'underline' },
   resetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderRadius: 12, backgroundColor: COLORS.danger + '22', marginTop: 16, borderWidth: 1, borderColor: COLORS.danger + '44' },
   resetText: { color: COLORS.danger, fontWeight: '700' },
+  premiumBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFD700' + '18', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#FFD700' + '44' },
+  premiumLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  premiumEmoji: { fontSize: 28 },
+  premiumTitle: { color: '#FFD700', fontWeight: '800', fontSize: 14 },
+  premiumSub: { color: COLORS.textSecondary, fontSize: 11, marginTop: 2 },
   footer: { alignItems: 'center', padding: 24, gap: 4 },
   footerText: { color: COLORS.textMuted, fontSize: 11 },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10 },

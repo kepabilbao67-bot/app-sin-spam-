@@ -9,6 +9,7 @@ import { clearAllData } from '../services/storage';
 import { processSMS, processEmail, processCall } from '../services/spamDetector';
 import { BlockedItem } from '../types';
 import DetailScreen from './DetailScreen';
+import AdBanner from '../components/AdBanner';
 
 type Filter = 'all' | 'call' | 'sms' | 'email';
 
@@ -91,6 +92,7 @@ export default function BlockedScreen() {
         renderItem={({ item }) => <BlockedItemCard item={item} onDelete={deleteItem} onPress={setSelectedItem} />}
         refreshing={loading}
         onRefresh={refresh}
+        ListHeaderComponent={filtered.length > 3 ? <AdBanner /> : null}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="shield-checkmark" size={60} color={COLORS.success} />

@@ -127,6 +127,18 @@ export default function DashboardScreen() {
           <Text style={[styles.quickLabel, { color: COLORS.primary }]}>Preguntar al asistente</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.quickRow}>
+        <TouchableOpacity style={[styles.quickCard, { borderColor: COLORS.warning + '44' }]}
+          onPress={() => navigation.navigate('Estadísticas')}>
+          <Ionicons name="bar-chart-outline" size={20} color={COLORS.warning} />
+          <Text style={[styles.quickLabel, { color: COLORS.warning }]}>Ver estadísticas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.quickCard, { borderColor: COLORS.danger + '44' }]}
+          onPress={() => navigation.navigate('Reglas')}>
+          <Ionicons name="filter-outline" size={20} color={COLORS.danger} />
+          <Text style={[styles.quickLabel, { color: COLORS.danger }]}>Gestionar reglas</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Recent blocked */}
       {recent.length > 0 && (
