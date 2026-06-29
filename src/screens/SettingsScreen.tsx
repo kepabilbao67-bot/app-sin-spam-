@@ -1,16 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Switch, TextInput, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Switch, TextInput, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, DEFAULT_SETTINGS } from '../constants';
 import { useSpamData } from '../hooks/useSpamData';
 import { AppSettings } from '../types';
-import { initAI } from '../services/aiAnalyzer';
+import { initAI, testAIConnection } from '../services/aiAnalyzer';
 
 export default function SettingsScreen() {
   const { settings, refresh, updateSettings } = useSpamData();
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
@@ -27,12 +28,17 @@ export default function SettingsScreen() {
   };
 
   const saveApiKey = async () => {
-    if (apiKey.trim()) {
-      initAI(apiKey.trim());
-      const updated = { ...settings, apiKey: apiKey.trim() };
-      await updateSettings(updated);
-      Alert.alert('IA activada', 'Claude AI configurado correctamente. Ahora el análisis será más preciso.');
+    if (!apiKey.trim()) return;
+    setTesting(true);
+    initAI(apiKey.trim());
+    const result = await testAIConnection();
+    setTesting(false);
+    if (result.ok) {
+      await updateSettings({ ...settings, apiKey: apiKey.trim() });
+      Alert.alert('Claude AI conectado', `Conexión exitosa.\nModelo: ${result.model}\n\nEl análisis de spam ahora usa IA real.`);
       setApiKey('');
+    } else {
+      Alert.alert('Error de conexión', `No se pudo conectar:\n${result.error}\n\nVerifica que la API key sea correcta.`);
     }
   };
 
@@ -116,8 +122,11 @@ export default function SettingsScreen() {
             <Ionicons name={showKey ? 'eye-off' : 'eye'} size={18} color={COLORS.textSecondary} />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.saveKeyBtn} onPress={saveApiKey}>
-          <Text style={styles.saveKeyText}>Guardar API Key</Text>
+        <TouchableOpacity style={[styles.saveKeyBtn, testing && { opacity: 0.6 }]} onPress={saveApiKey} disabled={testing}>
+          {testing
+            ? <><ActivityIndicator size="small" color="#fff" /><Text style={styles.saveKeyText}>Probando conexión...</Text></>
+            : <Text style={styles.saveKeyText}>Guardar y probar conexión</Text>
+          }
         </TouchableOpacity>
         <TouchableOpacity onPress={() => Linking.openURL('https://console.anthropic.com/')}>
           <Text style={styles.getKeyLink}>Obtener API key en console.anthropic.com →</Text>
@@ -127,6 +136,25 @@ export default function SettingsScreen() {
       <Text style={styles.section}>Notificaciones</Text>
       <View style={styles.card}>
         <SwitchRow label="Notificaciones" desc="Alertar cuando se bloquea algo" settingKey="notificationsEnabled" icon="notifications" color={COLORS.warning} />
+      </View>
+
+      <Text style={styles.section}>Cómo usar en tu móvil</Text>
+      <View style={styles.card}>
+        {[
+          { n: '1', text: 'Instala "Expo Go" desde Play Store o App Store' },
+          { n: '2', text: 'En tu ordenador: npm install && npm start' },
+          { n: '3', text: 'Escanea el QR con Expo Go' },
+          { n: '4', text: 'Para publicar en tiendas: eas build --platform android' },
+        ].map(step => (
+          <View key={step.n} style={styles.stepRow}>
+            <View style={styles.stepNum}><Text style={styles.stepNumText}>{step.n}</Text></View>
+            <Text style={styles.stepText}>{step.text}</Text>
+          </View>
+        ))}
+        <TouchableOpacity style={styles.storeLink} onPress={() => Linking.openURL('https://expo.dev/go')}>
+          <Ionicons name="open-outline" size={14} color={COLORS.primary} />
+          <Text style={styles.storeLinkText}>Abrir expo.dev/go →</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.resetBtn} onPress={resetSettings}>
@@ -165,11 +193,17 @@ const styles = StyleSheet.create({
   apiRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginBottom: 10 },
   apiInput: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 10, padding: 12, color: COLORS.text, borderWidth: 1, borderColor: COLORS.border },
   eyeBtn: { padding: 12 },
-  saveKeyBtn: { marginHorizontal: 14, backgroundColor: COLORS.primary, borderRadius: 10, padding: 12, alignItems: 'center', marginBottom: 8 },
+  saveKeyBtn: { marginHorizontal: 14, backgroundColor: COLORS.primary, borderRadius: 10, padding: 12, alignItems: 'center', marginBottom: 8, flexDirection: 'row', justifyContent: 'center', gap: 8 },
   saveKeyText: { color: '#fff', fontWeight: '700' },
   getKeyLink: { color: COLORS.primary, fontSize: 12, textAlign: 'center', padding: 8, marginBottom: 6, textDecorationLine: 'underline' },
   resetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderRadius: 12, backgroundColor: COLORS.danger + '22', marginTop: 16, borderWidth: 1, borderColor: COLORS.danger + '44' },
   resetText: { color: COLORS.danger, fontWeight: '700' },
   footer: { alignItems: 'center', padding: 24, gap: 4 },
   footerText: { color: COLORS.textMuted, fontSize: 11 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10 },
+  stepNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primary + '33', justifyContent: 'center', alignItems: 'center' },
+  stepNumText: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
+  stepText: { flex: 1, color: COLORS.text, fontSize: 13 },
+  storeLink: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, marginTop: 4 },
+  storeLinkText: { color: COLORS.primary, fontSize: 13, textDecorationLine: 'underline' },
 });

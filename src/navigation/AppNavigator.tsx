@@ -7,6 +7,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import BlockedScreen from '../screens/BlockedScreen';
 import RulesScreen from '../screens/RulesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import StatsScreen from '../screens/StatsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,6 +26,7 @@ export default function AppNavigator() {
             const icons: Record<string, [string, string]> = {
               Dashboard: ['shield-checkmark', 'shield-checkmark-outline'],
               Bloqueados: ['ban', 'ban-outline'],
+              Estadísticas: ['bar-chart', 'bar-chart-outline'],
               Reglas: ['filter', 'filter-outline'],
               Ajustes: ['settings', 'settings-outline'],
             };
@@ -35,6 +37,7 @@ export default function AppNavigator() {
       >
         <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Anti-Spam IA' }} />
         <Tab.Screen name="Bloqueados" component={BlockedScreen} />
+        <Tab.Screen name="Estadísticas" component={StatsScreen} />
         <Tab.Screen name="Reglas" component={RulesScreen} />
         <Tab.Screen name="Ajustes" component={SettingsScreen} />
       </Tab.Navigator>

@@ -8,6 +8,24 @@ export function initAI(apiKey: string) {
   client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 }
 
+export function isAIReady(): boolean {
+  return client !== null;
+}
+
+export async function testAIConnection(): Promise<{ ok: boolean; model?: string; error?: string }> {
+  if (!client) return { ok: false, error: 'No hay API key configurada' };
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 10,
+      messages: [{ role: 'user', content: 'ping' }],
+    });
+    return { ok: true, model: msg.model };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Error de conexión' };
+  }
+}
+
 // Local heuristic analysis (works without API key)
 export function analyzeLocally(
   sender: string,

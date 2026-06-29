@@ -16,14 +16,18 @@ export const COLORS = {
 };
 
 export const SPAM_PATTERNS = [
-  /premio|ganaste|felicitaciones|has\s*ganado/i,
-  /urgente|llamar\s*ahora|actúa\s*ya|oferta\s*limitada/i,
-  /crédito\s*fácil|préstamo\s*rápido|dinero\s*fácil/i,
-  /bitcoin|criptomoneda|inversión\s*garantizada/i,
-  /su\s*cuenta\s*ha\s*sido\s*suspendida|verifique\s*su\s*cuenta/i,
-  /haga\s*clic\s*aquí|pulse\s*aquí|enlace\s*gratuito/i,
-  /perder\s*peso|adelgazar\s*rápido|pastillas\s*milagrosas/i,
-  /trabajar\s*desde\s*casa|ingresos\s*extra|ganar\s*dinero/i,
+  /premio|ganaste|felicitaciones|has\s*ganado|ha\s*sido\s*seleccionado/i,
+  /urgente|llamar?\s*ahora|act[uú]a\s*ya|oferta\s*limitada|tiempo\s*limitado/i,
+  /cr[eé]dito\s*f[aá]cil|pr[eé]stamo\s*r[aá]pido|dinero\s*f[aá]cil|sin\s*aval/i,
+  /bitcoin|criptomoneda|inversi[oó]n\s*garantizada|rendimiento\s*seguro/i,
+  /cuenta\s*ha\s*sido\s*suspendida|verifique\s*su\s*cuenta|acceso\s*no\s*autorizado/i,
+  /haga\s*clic\s*aqu[ií]|pulse\s*aqu[ií]|enlace\s*gratuito|pincha\s*aqu[ií]/i,
+  /perder\s*peso|adelgazar\s*r[aá]pido|pastillas\s*milagrosas|dieta\s*m[aá]gica/i,
+  /trabajar\s*desde\s*casa|ingresos\s*extra|ganar\s*dinero\s*f[aá]cil/i,
+  /recoja\s*su\s*premio|reclame\s*su\s*regalo|reclamar?\s*ahora/i,
+  /transferencia\s*bloqueada|datos\s*bancarios|confirme\s*su\s*contrase[nñ]a/i,
+  /nigerian?\s*prince|wire\s*transfer|unclaimed\s*funds/i,
+  /llame\s*al\s*900|llame\s*al\s*901|llame\s*al\s*902/i,
 ];
 
 export const KNOWN_SPAM_PREFIXES = [
