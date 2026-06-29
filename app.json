@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Anti-Spam IA",
+    "slug": "anti-spam-ia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0F0F1A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.antispam.ia",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Para verificar contactos de confianza y evitar bloquear números conocidos.",
+        "NSPhotoLibraryUsageDescription": "Para adjuntar evidencia de spam."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6C63FF",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "package": "com.antispam.ia",
+      "permissions": [
+        "READ_CONTACTS",
+        "RECEIVE_SMS",
+        "READ_SMS",
+        "READ_CALL_LOG",
+        "CALL_PHONE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-contacts",
+      [
+        "expo-background-fetch",
+        {
+          "statusBarColor": "#0F0F1A"
+        }
+      ]
+    ]
+  }
+}
