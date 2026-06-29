@@ -9,6 +9,7 @@ import RulesScreen from '../screens/RulesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import StatsScreen from '../screens/StatsScreen';
 import WhatsAppScreen from '../screens/WhatsAppScreen';
+import AssistantScreen from '../screens/AssistantScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -28,7 +29,7 @@ export default function AppNavigator() {
               Dashboard: ['shield-checkmark', 'shield-checkmark-outline'],
               Bloqueados: ['ban', 'ban-outline'],
               WhatsApp: ['chatbubbles', 'chatbubbles-outline'],
-              Estadísticas: ['bar-chart', 'bar-chart-outline'],
+              Asistente: ['sparkles', 'sparkles-outline'],
               Ajustes: ['settings', 'settings-outline'],
             };
             const [active, inactive] = icons[route.name] || ['help', 'help-outline'];
@@ -39,7 +40,7 @@ export default function AppNavigator() {
         <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Anti-Spam IA' }} />
         <Tab.Screen name="Bloqueados" component={BlockedScreen} />
         <Tab.Screen name="WhatsApp" component={WhatsAppScreen} />
-        <Tab.Screen name="Estadísticas" component={StatsScreen} />
+        <Tab.Screen name="Asistente" component={AssistantScreen} options={{ title: 'Asistente IA' }} />
         <Tab.Screen name="Ajustes" component={SettingsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
