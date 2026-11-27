@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SHADOWS } from '../constants';
-import { isAIReady } from '../services/aiAnalyzer';
+import { COLORS, SHADOWS, CLAUDE_MODEL } from '../constants';
+import { isAIReady, responseText } from '../services/aiAnalyzer';
 import Anthropic from '@anthropic-ai/sdk';
 import { getApiKey } from '../services/storage';
 
@@ -110,13 +110,17 @@ export default function AssistantScreen() {
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.text }));
 
       const response = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 450,
+        model: CLAUDE_MODEL,
+        // Margen para el pensamiento además de la respuesta.
+        max_tokens: 1500,
+        output_config: { effort: 'low' }, // chat: rápido y barato
         system: SYSTEM_PROMPT,
         messages: [...history, { role: 'user', content: userText }],
       });
 
-      const replyText = (response.content[0] as { text: string }).text;
+      const replyText = response.stop_reason === 'refusal'
+        ? 'No puedo ayudar con esa petición. Prueba a preguntar de otra forma.'
+        : responseText(response) || '⚠️ La IA no devolvió respuesta. Inténtalo de nuevo.';
       setMessages(prev => [...prev, { id: generateId(), role: 'assistant', text: replyText, timestamp: Date.now() }]);
     } catch (e: any) {
       const isNoKey = e?.message === 'no_key';
