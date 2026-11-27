@@ -1,3 +1,6 @@
+// Modelo de Claude que usa la app (análisis de spam y asistente).
+export const CLAUDE_MODEL = 'claude-haiku-5-5';
+
 export const COLORS = {
   primary: '#7B6FFF',
   primaryDark: '#5A4FD6',

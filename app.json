@@ -11,27 +11,29 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.antispam.ia",
-      "infoPlist": {
-        "NSContactsUsageDescription": "Para verificar contactos de confianza y evitar bloquear números conocidos.",
-        "NSPhotoLibraryUsageDescription": "Para adjuntar evidencia de spam."
-      }
+      "bundleIdentifier": "com.antispam.ia"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#6C63FF",
-        "foregroundImage": "./assets/adaptive-icon.png"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.antispam.ia",
       "permissions": [
-        "READ_CONTACTS",
-        "RECEIVE_SMS",
-        "READ_SMS",
-        "READ_CALL_LOG",
-        "CALL_PHONE",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECEIVE_SMS",
+        "android.permission.READ_SMS",
+        "android.permission.SEND_SMS",
+        "android.permission.READ_CALL_LOG",
+        "android.permission.WRITE_CALL_LOG",
+        "android.permission.PROCESS_OUTGOING_CALLS",
+        "android.permission.CALL_PHONE",
+        "android.permission.READ_CONTACTS"
       ]
     },
     "web": {

@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Platform } from 'react-native';
 import { AIAnalysis, SpamCategory } from '../types';
-import { SPAM_PATTERNS, KNOWN_SPAM_PREFIXES } from '../constants';
+import { SPAM_PATTERNS, KNOWN_SPAM_PREFIXES, CLAUDE_MODEL } from '../constants';
 
 let client: Anthropic | null = null;
 
@@ -28,6 +28,17 @@ export function initAI(apiKey: string) {
   client = new Anthropic(opts);
 }
 
+// Texto de la respuesta. Claude Haiku 5.5 piensa por defecto y la respuesta puede
+// empezar con bloques "thinking", así que no vale leer content[0]: se juntan los
+// bloques de texto. Devuelve '' si el modelo rechazó la petición (stop_reason "refusal").
+export function responseText(message: Anthropic.Message): string {
+  if (message.stop_reason === 'refusal') return '';
+  return message.content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map(block => block.text)
+    .join('');
+}
+
 export function isAIReady(): boolean {
   return client !== null;
 }
@@ -36,8 +47,10 @@ export async function testAIConnection(): Promise<{ ok: boolean; model?: string;
   if (!client) return { ok: false, error: 'No hay API key configurada' };
   try {
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 10,
+      model: CLAUDE_MODEL,
+      // Margen para el pensamiento del modelo; con effort "low" apenas piensa.
+      max_tokens: 256,
+      output_config: { effort: 'low' },
       messages: [{ role: 'user', content: 'ping' }],
     });
     return { ok: true, model: msg.model };
@@ -146,13 +159,16 @@ Responde SOLO con JSON válido:
 }`;
 
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
+      model: CLAUDE_MODEL,
+      // El pensamiento cuenta para max_tokens: 200 podía agotarse antes del JSON.
+      max_tokens: 1024,
+      output_config: { effort: 'low' }, // clasificación sencilla y frecuente
       messages: [{ role: 'user', content: prompt }],
     });
     recordCall();
 
-    const text = (message.content[0] as { text: string }).text;
+    // Si el modelo rechaza la petición, text queda vacío y se usa el análisis local.
+    const text = responseText(message);
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
